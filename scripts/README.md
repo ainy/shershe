@@ -6,7 +6,7 @@
 for i in *.wav;do sox ./$i -r 8000 -b 16 -c 1 --encoding signed-integer --endian little ./$i.raw;done
 ```
 
-Далее делаем распознавание книги через pocketsphinx. Должны быть установлены [pocketsphinx](https://github.com/cmusphinx/pocketsphinx), [sphinxbase](https://github.com/cmusphinx/sphinxbase), [pocketsphinx-python](https://github.com/cmusphinx/pocketsphinx-python). Также нужно скачать [модель русского языка zero_ru.cd_cont_4000] (https://sourceforge.net/projects/cmusphinx/files/Acoustic%20and%20Language%20Models/Russian/zero_ru_cont_8k_v3.tar.gz/download) или [msu_ru_zero.cd_cont_2000](https://github.com/zamiron/ru4sphinx/tree/master/split/msu_ru_zero.cd_cont_2000) и указать путь к ней в скрипте zero.py. Сами скрипты для удобства лучше поместить куда-нибудь в $PATH, например в ```/usr/local/bin```.
+Далее делаем распознавание книги через pocketsphinx. Должны быть установлены [pocketsphinx](https://github.com/cmusphinx/pocketsphinx), [sphinxbase](https://github.com/cmusphinx/sphinxbase), [pocketsphinx-python](https://github.com/cmusphinx/pocketsphinx-python). Также нужно скачать модель русского языка [zero_ru.cd_cont_4000](https://sourceforge.net/projects/cmusphinx/files/Acoustic%20and%20Language%20Models/Russian/zero_ru_cont_8k_v3.tar.gz/download) или [msu_ru_zero.cd_cont_2000](https://github.com/zamiron/ru4sphinx/tree/master/split/msu_ru_zero.cd_cont_2000) и указать путь к ней в скрипте zero.py. Сами скрипты для удобства лучше поместить куда-нибудь в $PATH, например в ```/usr/local/bin```.
 
 Запускаем распознавание книги:
 
@@ -17,13 +17,13 @@ zero.py *.raw
 Скрипт создаёт файлы ```.json``` для каждого ```.raw``` с примерным текстом и координатами начала-конца отрывка (можно даже сделать выравнивание на уровне слов если вместо ```list(decoder.seg())[0].start_frame``` запоминать ```[x.start_frame for x in decoder.seg()]```). Дальше нужно выровнять распознанный текст с исходным алгоритмом Нидлмана-Вунша. Допустим все главы книги записаны в файл ```orig.txt```:
 
 ```
-cat orig.txt|needleman.py *.raw.json
+cat orig.txt | needleman.py *.raw.json
 ```
 
 Этот скрипт обрабатывает текст(заменяет числительные, убирает знаки препинания). По ходу выравнивания он будет выдавать частоту ошибок(несовпадений в выровненных последовательностей). Если их будет больше 20%, он выдаст сами последовательности, нужно найти и исправить несовпадения в исходном тексте(нижняя строчка текст, верхняя аудио).
 
 Алгоритм требователен к ресурсам. Я запускаю его на интерпретаторе [pypy](https://pypy.org/), он намного быстрее. На выходе создаются файлы ```.json_align.json``` с разбивкой - списками из 3х значений:
 
-* номер первого 10мс-окна в предложении,
-* номер последнего 10мс-окна в предложении,
+* номер первого 10мс-окна в отрывке,
+* номер последнего 10мс-окна в отрывке,
 * строка текста
