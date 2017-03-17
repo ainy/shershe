@@ -3,6 +3,22 @@
 from __future__ import unicode_literals
 #import numpy as np
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Align zero.py parser result json files with txt from stdin using Needleman–Wunsch algorithm.')
+parser.add_argument('files', metavar='FILE', type=open, nargs='+',
+                    help='list of zero.py parser result json files')
+
+parser.add_argument('--debug', dest='debug', action='store_true', default=False,
+                    help='debug mode prints unparsed source')
+
+parser.add_argument('--limit', dest='limit', action='store',
+                    default=0.25, type=float,
+                    help='char error rate limit (default: 0.25)')
+
+args = parser.parse_args()
+
+
 #Needleman–Wunsch algorithm
 insert = 1
 delete = 1
@@ -68,29 +84,39 @@ accs = {1:'первого',2:'второго',3:'третего',4:'четвёр
         11:'одиннадцатого',12:'двенадцатого',13:'тринадцатого',14:'четырнадцатого',15:'пятнадцатого',16:'шестнадцатого',17:'семнадцатого',18:'восемнадцатого',19:'девятнадцатого',
         10:'десятого',20:'двадцатого',30:'тридцатого',40:'сорокового',50:'пятидесятыго',60:'шестидесятыго',
         70:'семидесятого',80:'восьмидесятого',90:'девяностого'}
-quan = {1000:'тысяча',2000:'две тысячи',3000:'две тысячи',4000:'четыре тысячи',5000:'пять тысяч',6000:'шесть тысяч',7000:'семь тысяч',8000:'восемь тысяч',9000:'девять тысяч',
+quan = {1000:'тысяча',2000:'две тысячи',3000:'три тысячи',4000:'четыре тысячи',5000:'пять тысяч',6000:'шесть тысяч',7000:'семь тысяч',8000:'восемь тысяч',9000:'девять тысяч',
         100:'сто',200:'двести',300:'триста',400:'четыреста',500:'пятьсот',
-        600:'шестьсот',700:'семьсот',800:'восемьсот',900:'девятьсот',7000:'семьтысяч',
+        600:'шестьсот',700:'семьсот',800:'восемьсот',900:'девятьсот',
         0:'ноль',1:'один',2:'два',3:'три',4:'четыре',5:'пять',6:'шесть',7:'семь',8:'восемь',9:'девять',
         11:'одиннадцать',12:'двенадцать',13:'тринадцать',14:'четырнадцать',15:'пятнадцать',16:'шестнадцать',17:'семнадцать',18:'восемнадцать',19:'девятнадцать',
-        10:'десять',20:'двадцать',30:'тридцать',40:'сорок',50:'пятьдесят',60:'шестьдесят',3000:'тритысячи',
+        10:'десять',20:'двадцать',30:'тридцать',40:'сорок',50:'пятьдесят',60:'шестьдесят',
         70:'семьдесят',80:'восемьдесят',90:'девяносто'}
+
+quan_accs = {1000:'тысячи',2000:'двух тысяч',3000:'трёх тысяч',4000:'четырёх тысячи',5000:'пяти тысяч',6000:'шести тысяч',7000:'семи тысяч',8000:'восми тысяч',9000:'девяти тысяч',
+        100:'ста',200:'двухсот',300:'трёхсот',400:'четырёхсот',500:'пятисот',
+        600:'шестисот',700:'семисот',800:'восмисот',900:'девятисот',
+        0:'ноля',1:'одного',2:'двух',3:'трех',4:'четырех',5:'пяти',6:'шести',7:'семи',8:'восеми',9:'девяти',
+        11:'одиннадцати',12:'двенадцати',13:'тринадцати',14:'четырнадцати',15:'пятнадцати',16:'шестнадцати',17:'семнадцати',18:'восемнадцати',19:'девятнадцати',
+        10:'десяти',20:'двадцати',30:'тридцати',40:'сорока',50:'пятидесяти',60:'шестидесяти',
+        70:'семидесяти',80:'восмидесяти',90:'девяноста'}
+
 
 orpho = lambda x:[x]
 
 def say_num(num, last=nomn, default=quan):
-    #print num
     say = []
-    if len(num)>=4: say += orpho(default[int(num[-4])*1000])
-    if len(num)>=3 and num[-3] != '0': say += orpho(default[int(num[-3])*100])
-        
-    last0 = last if num[-1]=='0' else default
-    if len(num)>=2 and num[-2] == '1':
-      say += orpho(last0[int(num[-1])+10])
-    else:
-      if len(num)>=2 and num[-2] != '0': say += orpho(last0[int(num[-2])*10])
-      if len(num)>=1 and num[-1] != '0': say += orpho(last[int(num[-1])])
-    
+    try:
+      if len(num)>=4: say += orpho(default[int(num[-4])*1000])
+      if len(num)>=3 and num[-3] != '0': say += orpho(default[int(num[-3])*100])
+          
+      last0 = last if num[-1]=='0' else default
+      if len(num)>=2 and num[-2] == '1':
+        say += orpho(last0[int(num[-1])+10])
+      else:
+        if len(num)>=2 and num[-2] != '0': say += orpho(last0[int(num[-2])*10])
+        if len(num)>=1 and num[-1] != '0': say += orpho(last[int(num[-1])])
+    except:
+      print 'Failed to parse numerical:', num
     return say
 
 import re
@@ -98,16 +124,18 @@ def prepare_targets(strkv):
   preps = ['без','из','в','вокруг','из-под','к','меж','над','об','от','перед','под','с','через']
   prepend = ''
   strkv = ' '.join([ st.strip().lower() for st in strkv ]).replace('«','').replace('»','')
-  strkv = strkv.replace(' - ',', ').replace(u'\x01',' ').replace(' — ',', ').replace('…','.').replace('?','.').replace(':',',').replace('!','.').replace('...','.').replace(';','.')
+  strkv = strkv.replace(' - ',', ').replace(u'\x01',' ').replace(' ',' ').replace('— ',', ').replace('--','')
+  strkv = strkv.replace('…','.').replace('?','.').replace(':',',').replace('!','.').replace('...','.').replace(';','.')
   strkv= re.sub(r'\$([0-9,]+) млрд.',r'\1 миллиардов долларов',strkv)
   strkv= re.sub(r'\$([0-9,]+) тысяч',r'\1 тысяч долларов',strkv)
   strkv= re.sub(r'\$([0-9,]+) млн.',r'\1 миллионов долларов',strkv)
   strkv= re.sub(r'\$([0-9,]+)',r'\1 долларов',strkv)
-  strkv = strkv.replace(u'трлн.',u'триллионов').replace(u'млрд.',u'миллиардов').replace('млн.','миллионов').replace('тыс.','тысяч')
+  strkv = strkv.replace(u'трлн.',u'триллионов').replace(u'млрд.',u'миллиардов').replace('млн.','миллионов').replace('тыс.','тысяч').replace('№','номер')
           
   all_targ = []
-  
-  for st in strkv.replace(',','').split('.'):
+  ww = strkv.replace(',','').split('.')
+  for k in range(len(ww)):
+      st = ww[k]
       st= st.strip().replace('*','').replace('"','').replace('%-',' процент').replace('%',' процент').replace('(','').replace(')','')
       st= st.replace('-процентн',' процентн')
       targ = []
@@ -135,6 +163,8 @@ def prepare_targets(strkv):
                   prepend = ''
               if s.endswith('-м'):
                   targ += say_num(s[:-2], loct)
+              elif s.endswith('-и'):
+                  targ += say_num(s[:-2], quan_accs, quan_accs)
               elif s.endswith('-е') or s.endswith('-х'):
                   targ += say_num(s[:-2], plur)
               elif s.endswith('-го'):
@@ -154,10 +184,19 @@ def prepare_targets(strkv):
                           else:
                               targ += say_num(x)
               else:
+                  case = quan
                   if len(s)==4:
-                      targ += say_num(s)
-                  else:
-                      targ += say_num(s, quan)
+                    case = nomn
+                  if k+1 < len(ww) and ww[k+1]=='года':
+                    case = accs
+                  if k+1 < len(ww) and ww[k+1]=='годах':
+                    case = plur
+                  if k+1 < len(ww) and ww[k+1]=='году':
+                    case = loct
+                  
+                  
+                  targ += say_num(s, case)
+                  
               continue
           elif all([l in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' for l in s]):
               #targ += s.lower().rstrip('e')
@@ -174,12 +213,13 @@ def prepare_targets(strkv):
       if targ: all_targ.append(targ)
   return all_targ
 
-import fcntl, termios, struct
+import fcntl, termios, struct, math
 rows, columns = struct.unpack('hh', fcntl.ioctl(1, termios.TIOCGWINSZ, '1234'))
-def print_needleman(a,b):
+def print_needleman(a,b, time):
   cols = int(columns)-1
   for i in range(len(a)/cols):
-    print i
+    er = len([1 for aa,bb in zip(a,b)[i*cols:(i+1)*cols] if aa!=bb])
+    print i, '#'*int(math.log(er)), str(time/100/60)+':'+str(time/100%60)
     print a[i*cols:(i+1)*cols]
     print b[i*cols:(i+1)*cols]
     print
@@ -191,42 +231,43 @@ import sys
 #lines  = codecs.open('orig.txt','r','utf-8').readlines()
 lines = codecs.getreader('utf-8')(sys.stdin).readlines()
 targets = prepare_targets(lines)
-targets = ' '.join(map(' '.join, targets))
+targets = '|'.join(map(' '.join, targets))
 
-for f in sys.argv[1:]:
+for f in args.files:
   all_set = []
-  data = json.load(open(f))
+  data = json.load(f)
   data_r, data_s, data_e = zip(*data)
-  data_r = '|'.join(data_r)
+  data_r = '|'.join(data_r)+'|'
   data_t = []
-  print  'processing ', f, 'total ',len(data_r),'chars'
+  print  'processing ', f.name, 'total ',len(data_r),'chars'
   while data_r:
     a,b,ler = needleman(data_r[:5000], targets[:len(data_r[:5000])])
-    print '%.5d chars left, ler = %.3f' %(len(data_r), ler)
-      
-    if ler > 0.2:
+    print '%.5d chars left, сer = %.3f' %(len(data_r), ler)
+    b = b.replace('|', ' ')
+    if ler > args.limit:
       print 'Error rate limit exceeded, last chunk dumped(json, txt):'
-      print_needleman(a,b)
+      print_needleman(a,b, time=data_s[len(data_t)])
       
       exit(0)
     aa=a.split('|')
-    if len(data_r)>5000: aa = aa[:-len(aa)/2]
+    if len(aa)>2: aa = aa[:-len(aa)/2]
     for a in aa:
       t = b[:len(a)].replace('#','')
       lr = len(a.replace('#',''))+1
       lt = len(t)+1
-      #print t
+      
       #print targets[:lt-1]
       #assert t == targets[:lt-1]
       data_r = data_r[lr:]
       targets = targets[lt:]
       b = b[len(a)+1:]
+      if lr/(lt or 1) > 2: t=''
       data_t.append(t)
   
-  ff = f+str('_aligned.json')
-  result = zip(data_s, data_e, data_t)
+  ff = f.name+str('_aligned.json')
+  result = filter(lambda x:x[2], zip(data_s[:1]+data_e[:-1], data_e, data_t))
   json.dump(result, codecs.open(ff,'w','utf-8'), ensure_ascii=False)
-  
+  if args.debug: print targets[:100]
   """
   while di < len(data):
     t,s,e = data[di]
